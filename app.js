@@ -92,6 +92,33 @@ const FIELD_TYPES = {
   select: 'Auswahl', checkbox: 'Ja/Nein', url: 'Link',
 };
 
+// ---------- Rückfragen (statt alert/confirm, die nicht überall funktionieren) ----------
+
+function ask(message, { okText = 'OK', cancel = true } = {}) {
+  const box = document.getElementById('confirm-dialog');
+  document.getElementById('confirm-text').textContent = message;
+  const yes = document.getElementById('confirm-yes');
+  const no = document.getElementById('confirm-no');
+  yes.textContent = okText;
+  no.hidden = !cancel;
+  return new Promise((resolve) => {
+    const finish = (result) => {
+      yes.onclick = no.onclick = box.oncancel = null;
+      box.close();
+      resolve(result);
+    };
+    yes.onclick = () => finish(true);
+    no.onclick = () => finish(false);
+    box.oncancel = (e) => { e.preventDefault(); finish(false); };
+    box.showModal();
+    yes.focus();
+  });
+}
+
+function notify(message) {
+  return ask(message, { cancel: false });
+}
+
 // ---------- Persistenz ----------
 
 function load() {
@@ -128,7 +155,7 @@ function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
-    alert('Speichern fehlgeschlagen – der Browser-Speicher ist voll. Bitte große Titelbilder entfernen.');
+    notify('Speichern fehlgeschlagen – der Browser-Speicher ist voll. Bitte große Titelbilder entfernen.');
   }
 }
 
@@ -190,13 +217,13 @@ function startRename(areaId) {
   document.getSelection().selectAllChildren(title);
 }
 
-function deleteArea(areaId) {
+async function deleteArea(areaId) {
   const count = state.tasks.filter((t) => t.area === areaId).length;
-  if (state.areas.length === 1) { alert('Mindestens ein Bereich muss bestehen bleiben.'); return; }
+  if (state.areas.length === 1) { notify('Mindestens ein Bereich muss bestehen bleiben.'); return; }
   const msg = count
     ? `Bereich „${areaName(areaId)}“ und ${count} Auftrag/Aufträge darin löschen?`
     : `Bereich „${areaName(areaId)}“ löschen?`;
-  if (!confirm(msg)) return;
+  if (!await ask(msg)) return;
   state.areas = state.areas.filter((a) => a.id !== areaId);
   state.tasks = state.tasks.filter((t) => t.area !== areaId);
   save();
@@ -513,7 +540,7 @@ document.getElementById('cover-input').addEventListener('change', async (e) => {
     pendingCover = await readImage(file);
     updateCoverPreview();
   } catch (err) {
-    alert(err.message);
+    notify(err.message);
   }
 });
 document.getElementById('cover-remove').addEventListener('click', () => { pendingCover = ''; updateCoverPreview(); });
@@ -588,8 +615,8 @@ form.addEventListener('submit', () => {
 });
 
 document.getElementById('cancel-task').addEventListener('click', () => dialog.close());
-document.getElementById('delete-task').addEventListener('click', () => {
-  if (!confirm('Diesen Auftrag wirklich löschen?')) return;
+document.getElementById('delete-task').addEventListener('click', async () => {
+  if (!await ask('Diesen Auftrag wirklich löschen?')) return;
   state.tasks = state.tasks.filter((t) => t.id !== editingTaskId);
   save();
   render();
@@ -704,8 +731,8 @@ for (const tab of document.querySelectorAll('.tab')) {
 document.getElementById('hide-done').addEventListener('change', (e) => { ui.hideDone = e.target.checked; saveUi(); render(); });
 document.getElementById('create').addEventListener('click', () => openTask(null));
 document.getElementById('add-task-top').addEventListener('click', () => openTask(null));
-document.getElementById('load-examples').addEventListener('click', () => {
-  if (!confirm('Beispielaufträge laden? Das aktuelle Board wird dabei ersetzt (vorher ggf. exportieren).')) return;
+document.getElementById('load-examples').addEventListener('click', async () => {
+  if (!await ask('Beispielaufträge laden? Das aktuelle Board wird dabei ersetzt (vorher ggf. exportieren).')) return;
   state = exampleState();
   save();
   render();
@@ -749,8 +776,8 @@ function renderFieldList() {
 
     const up = iconButton('↑', 'Nach oben', i === 0, () => moveField(i, -1));
     const down = iconButton('↓', 'Nach unten', i === state.fields.length - 1, () => moveField(i, 1));
-    const del = iconButton('×', 'Feld löschen', false, () => {
-      if (!confirm(`Feld „${f.name}“ und alle eingetragenen Werte löschen?`)) return;
+    const del = iconButton('×', 'Feld löschen', false, async () => {
+      if (!await ask(`Feld „${f.name}“ und alle eingetragenen Werte löschen?`)) return;
       state.fields = state.fields.filter((x) => x.id !== f.id);
       for (const t of state.tasks) delete t.fields[f.id];
       save(); render(); renderFieldList();
@@ -808,7 +835,7 @@ fieldForm.addEventListener('submit', (e) => {
   const field = { id: uid('f'), name, type: fieldForm.type.value, onCard: fieldForm.onCard.checked };
   if (field.type === 'select') {
     field.options = parseOptions(fieldForm.options.value);
-    if (!field.options.length) { alert('Bitte mindestens einen Auswahlwert angeben.'); return; }
+    if (!field.options.length) { notify('Bitte mindestens einen Auswahlwert angeben.'); return; }
   }
   state.fields.push(field);
   save(); render(); renderFieldList();
@@ -817,14 +844,35 @@ fieldForm.addEventListener('submit', (e) => {
   fieldForm.name.focus();
 });
 
+const exportDialog = document.getElementById('export-dialog');
+const exportText = document.getElementById('export-text');
+
 document.getElementById('export').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  exportText.value = JSON.stringify(state, null, 2);
+  document.getElementById('export-status').textContent = '';
+  exportDialog.showModal();
+});
+
+document.getElementById('export-copy').addEventListener('click', async () => {
+  const status = document.getElementById('export-status');
+  try {
+    await navigator.clipboard.writeText(exportText.value);
+    status.textContent = 'Kopiert. Füge den Text in eine Datei mit der Endung .json ein.';
+  } catch (e) {
+    exportText.select();
+    status.textContent = 'Text ist markiert – mit Strg+C (bzw. ⌘+C) kopieren.';
+  }
+});
+
+document.getElementById('export-download').addEventListener('click', () => {
+  const blob = new Blob([exportText.value], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `auftraege-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `auftraege-${isoDate(new Date())}.json`;
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
+document.getElementById('export-close').addEventListener('click', () => exportDialog.close());
 
 document.getElementById('import').addEventListener('change', async (e) => {
   const file = e.target.files[0];
@@ -833,12 +881,12 @@ document.getElementById('import').addEventListener('change', async (e) => {
   try {
     const data = JSON.parse(await file.text());
     if (!Array.isArray(data.areas) || !Array.isArray(data.tasks)) throw new Error('Ungültiges Format');
-    if (!confirm('Aktuelles Board durch die Datei ersetzen?')) return;
+    if (!await ask('Aktuelles Board durch die Datei ersetzen?')) return;
     state = normalize(data);
     save();
     render();
   } catch (err) {
-    alert('Import fehlgeschlagen: ' + err.message);
+    notify('Import fehlgeschlagen: ' + err.message);
   }
 });
 

@@ -122,6 +122,28 @@
     </div>
   </dialog>
 
+  <dialog id="export-dialog">
+    <h2>Board exportieren</h2>
+    <p class="hint">Sichere diesen Text als .json-Datei. Über „Import“ kannst du ihn später oder auf einem anderen Gerät wieder laden.</p>
+    <textarea id="export-text" rows="10" readonly aria-label="Exportierte Daten"></textarea>
+    <p id="export-status" class="hint" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button type="button" id="export-download" class="btn btn-ghost">Als Datei speichern</button>
+      <span class="spacer"></span>
+      <button type="button" id="export-close" class="btn btn-ghost">Schließen</button>
+      <button type="button" id="export-copy" class="btn btn-primary">Kopieren</button>
+    </div>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="confirm-dialog">
+    <p id="confirm-text"></p>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="confirm-no" class="btn btn-ghost">Abbrechen</button>
+      <button type="button" id="confirm-yes" class="btn btn-primary">OK</button>
+    </div>
+  </dialog>
+
   <template id="area-template">
     <section class="area">
       <header class="area-header">

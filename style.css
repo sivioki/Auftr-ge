@@ -29,7 +29,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #1e1f21;
     --topbar: #2a2b2d;
     --topbar-text: #f5f4f3;
@@ -55,11 +55,42 @@
     --pill-purple-bg: #3d2d63; --pill-purple-fg: #e2d5ff;
     --pill-pink-bg: #5a2747;  --pill-pink-fg: #ffd2ec;
     --pill-gray-bg: #3d3e40;  --pill-gray-fg: #e2e0de;
+    color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #1e1f21;
+  --topbar: #2a2b2d;
+  --topbar-text: #f5f4f3;
+  --column: #252628;
+  --card: #2e2f31;
+  --text: #f5f4f3;
+  --muted: #a2a0a2;
+  --border: #424244;
+  --border-strong: #565557;
+  --hover: #353638;
+  --primary: #6d93e8;
+  --primary-text: #1e1f21;
+  --danger: #f06a8b;
+  --done: #6cc49b;
+  --due-soon: #6cc49b;
+  --overdue: #f06a8b;
+  --drop: #2c3a57;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --pill-red-bg: #5c2830;   --pill-red-fg: #ffc9cf;
+  --pill-yellow-bg: #5a4718; --pill-yellow-fg: #ffe7a3;
+  --pill-green-bg: #1f4a35; --pill-green-fg: #bdeccf;
+  --pill-blue-bg: #253a66;  --pill-blue-fg: #cdddfd;
+  --pill-purple-bg: #3d2d63; --pill-purple-fg: #e2d5ff;
+  --pill-pink-bg: #5a2747;  --pill-pink-fg: #ffd2ec;
+  --pill-gray-bg: #3d3e40;  --pill-gray-fg: #e2e0de;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html { height: 100%; }
 
 body {
   margin: 0;
@@ -67,7 +98,7 @@ body {
   font-size: 14px;
   background: var(--bg);
   color: var(--text);
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -389,6 +420,10 @@ dialog .title-input:hover, dialog .title-input:focus { border-color: var(--borde
 .dialog-actions { display: flex; gap: 8px; margin-top: 8px; }
 
 .hint { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+#export-text { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; margin-bottom: 8px; }
+#export-status:empty { display: none; }
+.confirm-dialog { width: min(420px, calc(100vw - 32px)); }
+#confirm-text { margin: 4px 0 16px; line-height: 1.5; }
 .field-form { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 8px; }
 #field-list { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 8px; }
 #field-list:empty::before { content: "Noch keine eigenen Felder."; color: var(--muted); font-size: 12px; }
