@@ -864,7 +864,7 @@ document.getElementById('export-copy').addEventListener('click', async () => {
   }
 });
 
-document.getElementById('export-download').addEventListener('click', () => {
+document.getElementById('export-download')?.addEventListener('click', () => {
   const blob = new Blob([exportText.value], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
