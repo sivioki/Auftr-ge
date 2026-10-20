@@ -3,69 +3,63 @@
 const STORAGE_KEY = 'auftragsboard-v1';
 
 const UI_KEY = 'auftragsboard-ui';
+const UI_DEFAULTS = { view: 'board', hideDone: false, area: 'all', sort: null, collapsed: [] };
 
-// Einfache, selbst erzeugte Titelbilder (SVG) für die Beispielaufträge
-function illustration(sky, ground, accent) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280">
-    <rect width="600" height="280" fill="${sky}"/>
-    <circle cx="470" cy="80" r="38" fill="#fff" opacity=".7"/>
-    <path d="M0 210 Q150 150 300 200 T600 190 V280 H0Z" fill="${ground}"/>
-    <rect x="150" y="120" width="130" height="100" rx="6" fill="#fff"/>
-    <path d="M140 126 L215 70 L290 126Z" fill="${accent}"/>
-    <rect x="200" y="170" width="30" height="50" rx="3" fill="${accent}" opacity=".8"/>
-    <rect x="165" y="138" width="26" height="22" rx="3" fill="${ground}" opacity=".6"/>
-    <rect x="240" y="138" width="26" height="22" rx="3" fill="${ground}" opacity=".6"/>
-    <path d="M0 240 Q200 205 380 235 T600 230 V280 H0Z" fill="${accent}" opacity=".35"/>
-  </svg>`;
-  return 'data:image/svg+xml,' + encodeURIComponent(svg);
-}
-
+// Beispiel-Board nach dem Vorbild einer Produktion mit mehreren Stationen.
+// Kunden, Bestellnummern und Namen sind ausgedacht.
 function exampleState() {
   const day = (offset) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
     return isoDate(d);
   };
-  const AREA_NAMES = { a1: 'Eingang', a2: 'In Bearbeitung', a3: 'Prüfung', a4: 'Erledigt' };
-  const created = (area) => [{ at: Date.now(), text: `Erstellt in „${area}“` }];
-  const task = (id, area, title, extra) => ({
-    id, area, title, description: '', assignee: '', due: '', priority: 'normal', done: false, cover: '',
-    fields: {}, history: created(AREA_NAMES[area]), ...extra,
+  const AREAS = ['Resinvorbereitung', 'Kommissionieren', 'Laser', 'Aufbau', 'Produktion', 'Quality', 'Verpackung', 'Erledigt'];
+  const areas = AREAS.map((name, i) => ({ id: `a${i + 1}`, name }));
+  const areaId = (name) => areas.find((a) => a.name === name).id;
+  let n = 0;
+  const sub = (...titles) => titles.map((title, i) => ({ id: `s${++n}`, title, done: i === 0 }));
+  const task = (area, group, title, f, extra = {}) => ({
+    id: `t${++n}`, area: areaId(area), group, title, description: '', assignee: '', due: day(f.due ?? 7),
+    priority: 'normal', done: false, cover: '', subtasks: [],
+    fields: {
+      artikel: group === 'g1' ? 'Valichrom' : 'Minichrom',
+      ende: f.ende === undefined ? '' : day(f.ende),
+      ma: f.ma ?? '', saeulen: f.saeulen ?? '', moisture: f.moisture ?? '', coa: f.coa ?? '',
+      lager: f.lager ?? false, customized: f.customized ?? '',
+    },
+    history: [{ at: Date.now(), text: `Erstellt in „${area}“` }],
+    ...extra,
   });
   return {
-    areas: [
-      ...Object.entries(AREA_NAMES).map(([id, name]) => ({ id, name })),
-    ],
+    areas,
+    groups: [{ id: 'g1', name: 'VC' }, { id: 'g2', name: 'MC' }],
+    builtins: { assignee: false, due: true, priority: false },
     fields: [
-      { id: 'f1', name: 'Kunde', type: 'text', onCard: true },
-      { id: 'f2', name: 'Auftragsart', type: 'select', onCard: true, options: ['Reparatur', 'Wartung', 'Neubau', 'Beratung'] },
-      { id: 'f3', name: 'Betrag (€)', type: 'number', onCard: false },
+      { id: 'artikel', name: 'Artikel', type: 'select', onCard: true, options: ['Valichrom', 'Minichrom'] },
+      { id: 'ende', name: 'Enddatum', type: 'date', onCard: false },
+      { id: 'ma', name: 'MA-Zuordnung', type: 'select', onCard: true, options: ['Anna', 'Ben', 'Clara', 'David'] },
+      { id: 'saeulen', name: 'Säulen', type: 'number', onCard: true },
+      { id: 'moisture', name: 'Moisture-Analyse', type: 'select', onCard: false, options: ['Ja', 'Teilweise'] },
+      { id: 'coa', name: 'CoA/KB', type: 'select', onCard: false, options: ['Ja'] },
+      { id: 'lager', name: 'Lagersäule', type: 'checkbox', onCard: true },
+      { id: 'customized', name: 'Customized', type: 'select', onCard: true, options: ['Customized'] },
     ],
     tasks: [
-      task('t1', 'a1', 'Angebot Badsanierung erstellen', {
-        assignee: 'Ben Keller', due: day(1), priority: 'hoch',
-        cover: illustration('#d4e2fb', '#9fbcf0', '#4573d2'),
-        description: 'Aufmaß liegt vor. Fliesen und Sanitärobjekte kalkulieren.',
-        fields: { f1: 'Familie Yilmaz', f2: 'Neubau', f3: 8400 },
-      }),
-      task('t2', 'a1', 'Heizungswartung Familie Weber', {
-        assignee: 'Anna Schmidt', due: day(3), fields: { f1: 'Familie Weber', f2: 'Wartung', f3: 180 },
-      }),
-      task('t3', 'a1', 'Rückruf Hausverwaltung Nord', { due: day(0), priority: 'niedrig', fields: { f2: 'Beratung' } }),
-      task('t4', 'a2', 'Dachrinne reparieren – Lindenstr. 12', {
-        assignee: 'Clara Wolf', due: day(-1), priority: 'hoch',
-        cover: illustration('#fde8d4', '#f4b38a', '#f06a6a'),
-        fields: { f1: 'Hausverwaltung Nord', f2: 'Reparatur', f3: 650 },
-      }),
-      task('t5', 'a2', 'Material für Baustelle bestellen', { assignee: 'Ben Keller', due: day(5) }),
-      task('t6', 'a3', 'Abnahme Küchenmontage', {
-        assignee: 'Anna Schmidt', due: day(2),
-        cover: illustration('#d9f2e6', '#a3dcc0', '#58a182'),
-        fields: { f1: 'Müller GmbH', f2: 'Neubau', f3: 12500 },
-      }),
-      task('t7', 'a4', 'Rechnung an Müller GmbH senden', {
-        assignee: 'Clara Wolf', due: day(-3), done: true, fields: { f1: 'Müller GmbH' },
-      }),
+      task('Resinvorbereitung', 'g1', 'Kunde Alpha SO 300101 PO 4500012345', { due: 9, saeulen: 12 }, { subtasks: sub('Resin abwiegen', 'Slurry ansetzen') }),
+      task('Resinvorbereitung', 'g2', 'Kunde Beta SO 300102 PO 7700045678', { due: 11, saeulen: 4 }),
+      task('Kommissionieren', 'g1', 'Kunde Gamma SO 300095 PO PO-000321', { due: 6, saeulen: 6, ma: 'Ben' }, { subtasks: sub('Hardware kommissionieren', 'Etiketten drucken') }),
+      task('Laser', 'g1', 'Kunde Delta SO 300090 PO 3200019876 / MA', { due: 5, saeulen: 3 }),
+      task('Aufbau', 'g2', 'Kunde Epsilon SO 300088 PO 8800023456', { due: 4, saeulen: 10, ma: 'David' }),
+      task('Produktion', 'g1', 'Kunde Zeta SO 300071 PO 9500013411 / 52', { due: -1, ende: -8, saeulen: 8, ma: 'Anna', coa: 'Ja', customized: 'Customized' }, { subtasks: sub('Säulen packen', 'Test', 'Dokumentation') }),
+      task('Produktion', 'g1', 'Kunde Eta SO 300072 PO 9949961790 / MA', { due: 0, ende: -7, saeulen: 35, ma: 'Clara', moisture: 'Ja', coa: 'Ja' }, { subtasks: sub('Säulen packen', 'Test') }),
+      task('Produktion', 'g1', 'Kunde Theta STO 60000476669', { due: 2, ende: -5, saeulen: 9, ma: 'Ben', coa: 'Ja' }),
+      task('Produktion', 'g1', 'Kunde Iota SO 300080 PO DR5969323 / MA', { due: 6, ende: -1, saeulen: 6, moisture: 'Ja', coa: 'Ja' }),
+      task('Produktion', 'g1', 'Kunde Kappa SO 300081 PO 4519507070', { due: 10, ende: 3, saeulen: 4, moisture: 'Teilweise', coa: 'Ja' }, { subtasks: sub('Säulen packen', 'Test', 'Druckprüfung', 'Dokumentation') }),
+      task('Produktion', 'g1', 'Kunde Lambda SO 300083 PO 3100019358 PRIO', { due: 10, ende: 3, saeulen: 6, moisture: 'Teilweise', coa: 'Ja' }, { priority: 'hoch' }),
+      task('Produktion', 'g2', 'Kunde My PA 20219386 Pure PL EA', { due: 8, ende: 1, saeulen: 20, coa: 'Ja', lager: true }),
+      task('Quality', 'g1', 'Kunde Ny SO 300060 PO 4300427706 / MA', { due: 3, ende: -2, saeulen: 2, moisture: 'Ja', coa: 'Ja', ma: 'Clara' }),
+      task('Verpackung', 'g2', 'Kunde Xi SO 300055 PO DR6025838 / MA', { due: 1, ende: -4, saeulen: 4, coa: 'Ja' }),
+      task('Erledigt', 'g1', 'Kunde Omikron SO 300040 PO 4503007004', { due: -3, ende: -10, saeulen: 5, coa: 'Ja' }, { done: true }),
     ],
   };
 }
@@ -75,10 +69,12 @@ let editingTaskId = null;
 let editingAreaId = null;
 let pendingCover = '';
 let pendingDone = false;
+let pendingSubtasks = [];
 let ui = loadUi();
 
 const board = document.getElementById('board');
 const listView = document.getElementById('list');
+const sidebar = document.getElementById('sidebar');
 const search = document.getElementById('search');
 const dialog = document.getElementById('task-dialog');
 const form = document.getElementById('task-form');
@@ -133,7 +129,7 @@ function load() {
 }
 
 function loadUi() {
-  try { return { view: 'board', hideDone: false, ...JSON.parse(localStorage.getItem(UI_KEY)) }; } catch (e) { return { view: 'board', hideDone: false }; }
+  try { return { ...UI_DEFAULTS, ...JSON.parse(localStorage.getItem(UI_KEY)) }; } catch (e) { return { ...UI_DEFAULTS }; }
 }
 
 function saveUi() {
@@ -143,8 +139,12 @@ function saveUi() {
 // Ältere Daten (ohne eigene Felder) auf aktuelles Format bringen
 function normalize(data) {
   data.fields ??= [];
+  data.groups ??= [];
+  data.builtins = { assignee: true, due: true, priority: true, ...data.builtins };
   for (const t of data.tasks) {
     t.fields ??= {};
+    t.subtasks ??= [];
+    t.group ??= '';
     t.done ??= false;
     t.cover ??= '';
   }
@@ -226,6 +226,7 @@ async function deleteArea(areaId) {
   if (!await ask(msg)) return;
   state.areas = state.areas.filter((a) => a.id !== areaId);
   state.tasks = state.tasks.filter((t) => t.area !== areaId);
+  if (ui.area === areaId) { ui.area = 'all'; saveUi(); }
   save();
   render();
 }
@@ -273,6 +274,8 @@ function dueInfo(task) {
 
 const AVATAR_COLORS = ['#f06a6a', '#4573d2', '#58a182', '#aa62e3', '#e8a33b', '#3fb1ab', '#ea4e9d', '#8d84e8'];
 const PILL_COLORS = ['blue', 'green', 'purple', 'yellow', 'pink', 'red'];
+const GROUP_COLORS = ['blue', 'purple', 'pink', 'yellow', 'green', 'red'];
+const groupName = (id) => state.groups.find((g) => g.id === id)?.name ?? '';
 const PRIORITY_PILL = { hoch: ['Hoch', 'red'], normal: ['Normal', 'yellow'], niedrig: ['Niedrig', 'green'] };
 
 function avatar(name) {
@@ -290,6 +293,19 @@ function avatar(name) {
 function pill(text, color = '', title = '') {
   const el = span(text, `pill ${color}`.trim());
   if (title) el.title = title;
+  return el;
+}
+
+function groupPill(task) {
+  const idx = state.groups.findIndex((g) => g.id === task.group);
+  return idx < 0 ? null : pill(state.groups[idx].name, GROUP_COLORS[idx % GROUP_COLORS.length], 'Gruppe');
+}
+
+function subtaskInfo(task) {
+  if (!task.subtasks.length) return null;
+  const done = task.subtasks.filter((st) => st.done).length;
+  const el = span(`☑ ${done}/${task.subtasks.length}`, 'subtask-count');
+  el.title = 'Erledigte Unteraufgaben';
   return el;
 }
 
@@ -318,6 +334,9 @@ function render() {
   listView.hidden = ui.view !== 'list';
   for (const tab of document.querySelectorAll('.tab')) tab.setAttribute('aria-selected', tab.dataset.view === ui.view);
   document.getElementById('hide-done').checked = ui.hideDone;
+  if (ui.area !== 'all' && !state.areas.some((a) => a.id === ui.area)) ui.area = 'all';
+  document.getElementById('project-name').textContent = ui.area === 'all' ? 'Alle Aufträge' : areaName(ui.area);
+  renderSidebar();
   if (ui.view === 'list') renderList();
   else renderBoard();
 }
@@ -329,6 +348,7 @@ function renderBoard() {
     const el = areaTpl.content.firstElementChild.cloneNode(true);
     el.dataset.id = area.id;
     el.querySelector('.area-title').textContent = area.name;
+    el.classList.toggle('selected', ui.area === area.id);
     el.querySelector('.move-left').disabled = areaIdx === 0;
     el.querySelector('.move-right').disabled = areaIdx === state.areas.length - 1;
 
@@ -350,20 +370,24 @@ function renderBoard() {
       card.querySelector('.card-title').textContent = task.title;
 
       const pills = card.querySelector('.pills');
-      pills.append(priorityPill(task));
+      const gp = groupPill(task);
+      if (gp) pills.append(gp);
+      if (state.builtins.priority) pills.append(priorityPill(task));
       for (const f of state.fields) {
         const p = f.onCard && fieldPill(f, task.fields[f.id]);
         if (p) pills.append(p);
       }
 
-      if (task.assignee) card.querySelector('.avatar').replaceWith(avatar(task.assignee));
-      const due = dueInfo(task);
+      if (state.builtins.assignee && task.assignee) card.querySelector('.avatar').replaceWith(avatar(task.assignee));
+      const due = state.builtins.due && dueInfo(task);
       if (due) {
         const dueEl = card.querySelector('.due');
         dueEl.textContent = due.text;
         dueEl.className = `due ${due.cls}`.trim();
         dueEl.title = `Fällig am ${formatDate(task.due)}`;
       }
+      const st = subtaskInfo(task);
+      if (st) card.querySelector('.extras').append(st);
       if (task.description) card.querySelector('.extras').append(Object.assign(span('≡'), { title: 'Hat eine Beschreibung' }));
       card.querySelector('.prev').disabled = areaIdx === 0;
       card.querySelector('.next').disabled = areaIdx === state.areas.length - 1;
@@ -374,78 +398,184 @@ function renderBoard() {
   board.append(addAreaTpl.content.firstElementChild.cloneNode(true));
 }
 
+function renderSidebar() {
+  const item = (id, label, count) => {
+    const b = document.createElement('button');
+    b.className = 'side-item';
+    b.dataset.area = id;
+    b.setAttribute('aria-current', ui.area === id ? 'page' : 'false');
+    b.append(span(label, 'side-label'));
+    if (count !== null) b.append(span(String(count), 'side-count'));
+    return b;
+  };
+  const open = (id) => state.tasks.filter((t) => (id === 'all' || t.area === id) && !t.done).length;
+  sidebar.replaceChildren(
+    item('all', 'Übersicht', open('all')),
+    span('Bereiche', 'side-heading'),
+    ...state.areas.map((a) => item(a.id, a.name, open(a.id))),
+  );
+}
+
+// Spalten der Listenansicht: Standardfelder (sofern eingeblendet) und eigene Felder
+function listColumns() {
+  const cols = [{ key: 'title', name: 'Name' }];
+  if (ui.area === 'all' && state.groups.length) cols.push({ key: 'group', name: 'Gruppe' });
+  if (state.builtins.assignee) cols.push({ key: 'assignee', name: 'Zuständig' });
+  if (state.builtins.due) cols.push({ key: 'due', name: 'Fälligkeit' });
+  if (state.builtins.priority) cols.push({ key: 'priority', name: 'Priorität' });
+  for (const f of state.fields) cols.push({ key: f.id, name: f.name, field: f });
+  return cols;
+}
+
+function sortValue(task, key) {
+  if (key === 'title') return task.title.toLowerCase();
+  if (key === 'group') return groupName(task.group).toLowerCase();
+  if (key === 'priority') return { hoch: 0, normal: 1, niedrig: 2 }[task.priority] ?? 1;
+  if (key === 'assignee' || key === 'due') return task[key] || null;
+  const f = state.fields.find((x) => x.id === key);
+  const v = task.fields[key];
+  if (v === undefined || v === '' || v === false) return null;
+  if (f?.type === 'select') return f.options.indexOf(v);
+  return typeof v === 'string' ? v.toLowerCase() : Number(v);
+}
+
+function sortTasks(tasks) {
+  if (!ui.sort) return tasks;
+  const { key, dir } = ui.sort;
+  return tasks.slice().sort((a, b) => {
+    const va = sortValue(a, key);
+    const vb = sortValue(b, key);
+    if (va === vb) return 0;
+    if (va === null) return 1; // leere Werte immer ans Ende
+    if (vb === null) return -1;
+    return (va < vb ? -1 : 1) * dir;
+  });
+}
+
 function renderList() {
+  const cols = listColumns();
   const table = document.createElement('table');
   const head = table.createTHead().insertRow();
-  for (const h of ['Name', 'Zuständig', 'Fällig', 'Priorität', ...state.fields.map((f) => f.name)]) {
+  for (const c of cols) {
     const th = document.createElement('th');
-    th.textContent = h;
+    const b = document.createElement('button');
+    b.className = 'sort-btn';
+    b.dataset.sort = c.key;
+    b.textContent = c.name;
+    if (ui.sort?.key === c.key) b.append(span(ui.sort.dir > 0 ? ' ↑' : ' ↓', 'sort-arrow'));
+    b.title = 'Sortieren';
+    th.append(b);
+    if (c.field?.type === 'number') th.className = 'num';
     head.append(th);
   }
   const body = table.createTBody();
-  const cols = 4 + state.fields.length;
 
-  for (const area of state.areas) {
-    const tasks = visibleTasks(area.id);
-    const sec = body.insertRow();
-    sec.className = 'section';
-    const secCell = sec.insertCell();
-    secCell.colSpan = cols;
-    secCell.textContent = `${area.name} `;
-    secCell.append(span(String(tasks.length), 'count'));
+  // Abschnitte: in der Übersicht die Bereiche, in einem Bereich die Gruppen
+  let sections;
+  if (ui.area === 'all') {
+    sections = state.areas.map((a) => ({ key: `a:${a.id}`, name: a.name, area: a.id, group: '', tasks: visibleTasks(a.id) }));
+  } else {
+    const tasks = visibleTasks(ui.area);
+    sections = state.groups.map((g) => ({ key: `g:${g.id}`, name: g.name, area: ui.area, group: g.id, tasks: tasks.filter((t) => t.group === g.id) }));
+    const rest = tasks.filter((t) => !state.groups.some((g) => g.id === t.group));
+    if (rest.length || !sections.length) sections.push({ key: 'g:', name: sections.length ? 'Ohne Gruppe' : 'Aufträge', area: ui.area, group: '', tasks: rest });
+  }
 
-    for (const task of tasks) {
-      const row = body.insertRow();
-      row.className = 'task-row';
-      row.classList.toggle('done', task.done);
-      row.dataset.id = task.id;
+  for (const sec of sections) {
+    const collapsed = ui.collapsed.includes(sec.key);
+    const secRow = body.insertRow();
+    secRow.className = 'section';
+    secRow.dataset.key = sec.key;
+    const secCell = secRow.insertCell();
+    secCell.colSpan = cols.length;
+    const toggle = document.createElement('button');
+    toggle.className = 'section-toggle';
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.append(span(collapsed ? '▸' : '▾', 'caret'), span(sec.name), span(String(sec.tasks.length), 'count'));
+    secCell.append(toggle);
+    if (collapsed) continue;
 
-      const nameCell = row.insertCell();
+    for (const task of sortTasks(sec.tasks)) body.append(taskRow(task, cols));
+
+    const add = body.insertRow();
+    add.className = 'add-row';
+    add.dataset.area = sec.area;
+    add.dataset.group = sec.group;
+    for (const c of cols) {
+      const cell = add.insertCell();
+      if (c.key === 'title') cell.textContent = '+ Auftrag hinzufügen';
+      if (c.field?.type === 'number') {
+        const sum = sec.tasks.reduce((acc, t) => acc + (Number(t.fields[c.key]) || 0), 0);
+        cell.className = 'num sum';
+        cell.append(span('Summe ', 'sum-label'), sum.toLocaleString('de-DE'));
+      }
+    }
+  }
+  listView.replaceChildren(table);
+}
+
+function taskRow(task, cols) {
+  const row = document.createElement('tr');
+  row.className = 'task-row';
+  row.classList.toggle('done', task.done);
+  row.dataset.id = task.id;
+  const areaIdx = state.areas.findIndex((a) => a.id === task.area);
+  const next = state.areas[areaIdx + 1];
+
+  for (const c of cols) {
+    const cell = row.insertCell();
+    if (c.key === 'title') {
       const name = document.createElement('div');
       name.className = 'name-cell';
       const check = document.createElement('button');
       check.className = 'check-btn';
       check.setAttribute('aria-label', 'Erledigt');
-      name.append(check, span(task.title));
-      nameCell.append(name);
-
-      const who = row.insertCell();
+      name.append(check, span(task.title, 'task-name'));
+      const st = subtaskInfo(task);
+      if (st) name.append(st);
+      if (ui.area === 'all') name.append(span(areaName(task.area), 'area-tag'));
+      if (next) {
+        const go = document.createElement('button');
+        go.className = 'next-btn';
+        go.title = `In „${next.name}“ verschieben`;
+        go.textContent = `→ ${next.name}`;
+        name.append(go);
+      }
+      cell.append(name);
+    } else if (c.key === 'group') {
+      const gp = groupPill(task);
+      if (gp) cell.append(gp);
+    } else if (c.key === 'assignee') {
       if (task.assignee) {
         const person = span('', 'person');
         person.append(avatar(task.assignee), task.assignee);
-        who.append(person);
+        cell.append(person);
       }
-
-      const dueCell = row.insertCell();
+    } else if (c.key === 'due') {
       const due = dueInfo(task);
-      if (due) dueCell.append(span(due.text, `due ${due.cls}`.trim()));
-
-      row.insertCell().append(priorityPill(task));
-      for (const f of state.fields) {
-        const cell = row.insertCell();
-        const v = task.fields[f.id];
-        if (f.type === 'url' && v) {
-          const a = document.createElement('a');
-          a.href = v;
-          a.target = '_blank';
-          a.rel = 'noopener';
-          a.textContent = v;
-          cell.append(a);
-        } else {
-          const p = fieldPill(f, v);
-          if (p) cell.append(f.type === 'select' || f.type === 'checkbox' ? p : displayValue(f, v));
-        }
+      if (due) cell.append(span(due.text, `due ${due.cls}`.trim()));
+    } else if (c.key === 'priority') {
+      cell.append(priorityPill(task));
+    } else {
+      const f = c.field;
+      const v = task.fields[f.id];
+      if (f.type === 'number') cell.className = 'num';
+      if (f.type === 'url' && v) {
+        const a = document.createElement('a');
+        a.href = v;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = v;
+        cell.append(a);
+      } else if (f.type === 'checkbox') {
+        if (v) cell.append(pill('Ja', 'green', f.name));
+      } else {
+        const p = fieldPill(f, v);
+        if (p) cell.append(f.type === 'select' ? p : displayValue(f, v));
       }
     }
-
-    const add = body.insertRow();
-    add.className = 'add-row';
-    add.dataset.area = area.id;
-    const addCell = add.insertCell();
-    addCell.colSpan = cols;
-    addCell.textContent = '+ Auftrag hinzufügen …';
   }
-  listView.replaceChildren(table);
+  return row;
 }
 
 function displayValue(field, value) {
@@ -457,7 +587,8 @@ function displayValue(field, value) {
 
 function searchText(task) {
   const custom = state.fields.map((f) => task.fields[f.id]).filter((v) => typeof v === 'string' || typeof v === 'number');
-  return [task.title, task.description, task.assignee, ...custom].join(' ').toLowerCase();
+  return [task.title, task.description, task.assignee, groupName(task.group), ...task.subtasks.map((st) => st.title), ...custom]
+    .join(' ').toLowerCase();
 }
 
 function span(text, cls = '') {
@@ -469,7 +600,7 @@ function span(text, cls = '') {
 
 // ---------- Dialog ----------
 
-function openTask(taskId, areaId) {
+function openTask(taskId, areaId, groupId) {
   editingTaskId = taskId;
   const task = taskId ? state.tasks.find((t) => t.id === taskId) : null;
   document.getElementById('task-dialog-title').textContent = task ? 'Auftrag bearbeiten' : 'Neuer Auftrag';
@@ -483,7 +614,13 @@ function openTask(taskId, areaId) {
   form.assignee.value = task?.assignee ?? '';
   form.due.value = task?.due ?? '';
   form.priority.value = task?.priority ?? 'normal';
-  form.area.value = task?.area ?? areaId ?? state.areas[0].id;
+  form.area.value = task?.area ?? areaId ?? (ui.area !== 'all' ? ui.area : state.areas[0].id);
+  form.group.replaceChildren(new Option('–', ''), ...state.groups.map((g) => new Option(g.name, g.id)));
+  form.group.value = task?.group ?? groupId ?? '';
+  document.getElementById('group-label').hidden = !state.groups.length;
+  for (const el of form.querySelectorAll('[data-builtin]')) el.hidden = !state.builtins[el.dataset.builtin];
+  pendingSubtasks = structuredClone(task?.subtasks ?? []);
+  renderSubtasks();
   renderCustomInputs(task?.fields ?? {});
   document.getElementById('delete-task').hidden = !task;
   const historyBox = document.getElementById('history-box');
@@ -499,6 +636,39 @@ function openTask(taskId, areaId) {
   dialog.showModal();
   form.title.focus();
 }
+
+function renderSubtasks() {
+  const list = document.getElementById('subtask-list');
+  list.replaceChildren(...pendingSubtasks.map((st) => {
+    const li = document.createElement('li');
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = st.done;
+    box.setAttribute('aria-label', 'Erledigt');
+    box.addEventListener('change', () => { st.done = box.checked; });
+    const text = document.createElement('input');
+    text.value = st.title;
+    text.maxLength = 200;
+    text.setAttribute('aria-label', 'Unteraufgabe');
+    text.addEventListener('change', () => { st.title = text.value.trim() || st.title; text.value = st.title; });
+    const del = iconButton('×', 'Unteraufgabe löschen', false, () => {
+      pendingSubtasks = pendingSubtasks.filter((x) => x !== st);
+      renderSubtasks();
+    });
+    li.append(box, text, del);
+    return li;
+  }));
+}
+
+document.getElementById('subtask-new').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const title = e.target.value.trim();
+  if (!title) return;
+  pendingSubtasks.push({ id: uid('s'), title, done: false });
+  e.target.value = '';
+  renderSubtasks();
+});
 
 function updateCoverPreview() {
   const img = document.getElementById('cover-preview');
@@ -599,6 +769,8 @@ form.addEventListener('submit', () => {
     priority: form.priority.value,
     fields: readCustomInputs(),
     cover: pendingCover,
+    group: form.group.value,
+    subtasks: pendingSubtasks,
   };
   if (!data.title) return;
   const area = form.area.value;
@@ -716,11 +888,38 @@ board.addEventListener('drop', (e) => {
 });
 
 listView.addEventListener('click', (e) => {
+  const sortBtn = e.target.closest('.sort-btn');
+  if (sortBtn) {
+    // Klickfolge: aufsteigend → absteigend → unsortiert
+    const key = sortBtn.dataset.sort;
+    if (ui.sort?.key !== key) ui.sort = { key, dir: 1 };
+    else if (ui.sort.dir === 1) ui.sort.dir = -1;
+    else ui.sort = null;
+    saveUi();
+    return render();
+  }
+  const section = e.target.closest('.section-toggle');
+  if (section) {
+    const key = section.closest('tr').dataset.key;
+    ui.collapsed = ui.collapsed.includes(key) ? ui.collapsed.filter((k) => k !== key) : [...ui.collapsed, key];
+    saveUi();
+    return render();
+  }
   const row = e.target.closest('.task-row');
+  if (row && e.target.closest('.next-btn')) return stepTask(row.dataset.id, 1);
   if (row && e.target.closest('.check-btn')) return toggleDone(row.dataset.id);
   if (row && !e.target.closest('a')) return openTask(row.dataset.id);
   const add = e.target.closest('.add-row');
-  if (add) openTask(null, add.dataset.area);
+  if (add) openTask(null, add.dataset.area, add.dataset.group);
+});
+
+sidebar.addEventListener('click', (e) => {
+  const item = e.target.closest('.side-item');
+  if (!item) return;
+  ui.area = item.dataset.area;
+  if (ui.area !== 'all') ui.view = 'list';
+  saveUi();
+  render();
 });
 
 // Kopf- und Werkzeugleiste
@@ -818,7 +1017,62 @@ function parseOptions(text) {
   return [...new Set(text.split(',').map((o) => o.trim()).filter(Boolean))];
 }
 
+function renderGroupList() {
+  document.getElementById('group-list').replaceChildren(...state.groups.map((g, i) => {
+    const li = document.createElement('li');
+    li.className = 'field-item';
+    const name = document.createElement('input');
+    name.className = 'field-name';
+    name.value = g.name;
+    name.maxLength = 40;
+    name.setAttribute('aria-label', 'Gruppenname');
+    name.addEventListener('change', () => {
+      if (name.value.trim()) g.name = name.value.trim();
+      else name.value = g.name;
+      save(); render();
+    });
+    const count = state.tasks.filter((t) => t.group === g.id).length;
+    li.append(
+      name,
+      span(`${count} Aufträge`, 'field-type'),
+      iconButton('↑', 'Nach oben', i === 0, () => moveGroup(i, -1)),
+      iconButton('↓', 'Nach unten', i === state.groups.length - 1, () => moveGroup(i, 1)),
+      iconButton('×', 'Gruppe löschen', false, async () => {
+        if (!await ask(`Gruppe „${g.name}“ löschen? Die Aufträge bleiben erhalten und sind danach ohne Gruppe.`)) return;
+        state.groups = state.groups.filter((x) => x.id !== g.id);
+        for (const t of state.tasks) if (t.group === g.id) t.group = '';
+        save(); render(); renderGroupList();
+      }),
+    );
+    return li;
+  }));
+}
+
+function moveGroup(i, dir) {
+  [state.groups[i], state.groups[i + dir]] = [state.groups[i + dir], state.groups[i]];
+  save(); render(); renderGroupList();
+}
+
+document.getElementById('group-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = e.target.name.value.trim();
+  if (!name) return;
+  state.groups.push({ id: uid('g'), name });
+  e.target.reset();
+  save(); render(); renderGroupList();
+});
+
+for (const key of ['assignee', 'due', 'priority']) {
+  document.getElementById(`bi-${key}`).addEventListener('change', (e) => {
+    state.builtins[key] = e.target.checked;
+    if (!e.target.checked && ui.sort?.key === key) { ui.sort = null; saveUi(); }
+    save(); render();
+  });
+}
+
 document.getElementById('manage-fields').addEventListener('click', () => {
+  for (const key of ['assignee', 'due', 'priority']) document.getElementById(`bi-${key}`).checked = state.builtins[key];
+  renderGroupList();
   renderFieldList();
   fieldsDialog.showModal();
 });

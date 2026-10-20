@@ -204,6 +204,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .board {
   flex: 1;
+  min-height: 0;
   display: flex;
   gap: 12px;
   padding: 16px 24px;
@@ -443,4 +444,108 @@ dialog .title-input:hover, dialog .title-input:focus { border-color: var(--borde
   .area { flex-basis: auto; max-height: none; }
   .list { padding: 8px 16px 24px; }
   .row { flex-direction: column; gap: 0; }
+}
+
+/* ---------- Seitenleiste & Layout ---------- */
+
+.layout { flex: 1; display: flex; min-height: 0; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.sidebar {
+  flex: none;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  background: var(--topbar);
+  color: var(--topbar-text);
+  overflow-y: auto;
+}
+.side-heading { font-size: 12px; color: #a2a0a2; padding: 14px 10px 4px; }
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.side-item::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: #8d84e8;
+}
+.side-item[data-area="all"]::before { background: #4ecbc4; }
+.side-item:hover { background: rgba(255, 255, 255, 0.08); }
+.side-item[aria-current="page"] { background: rgba(255, 255, 255, 0.16); }
+.side-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-count { font-size: 12px; color: #a2a0a2; font-variant-numeric: tabular-nums; }
+.area.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+/* ---------- Liste: Abschnitte, Sortierung, Summen ---------- */
+
+.sort-btn { border: none; background: none; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.sort-btn:hover { color: var(--text); }
+.sort-arrow { color: var(--primary); }
+.list th.num, .list td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.caret { color: var(--muted); width: 12px; }
+.list .name-cell { flex-wrap: nowrap; }
+.task-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.subtask-count { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.area-tag { flex: none; font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 0 8px; }
+.next-btn {
+  flex: none;
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  white-space: nowrap;
+}
+.task-row:hover .next-btn, .next-btn:focus-visible { opacity: 1; }
+.next-btn:hover { border-color: var(--primary); color: var(--primary); }
+@media (hover: none) { .next-btn { opacity: 1; } }
+.list .add-row td.sum { color: var(--text); white-space: nowrap; }
+.sum-label { color: var(--muted); font-size: 12px; }
+
+/* ---------- Dialog: Unteraufgaben, Gruppen ---------- */
+
+.subtasks { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+#subtask-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+#subtask-list li { display: flex; align-items: center; gap: 8px; }
+#subtask-list input:not([type="checkbox"]) { flex: 1; min-width: 0; }
+.builtin-toggles { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 8px; }
+.builtin-toggles label { flex: none; margin: 0; }
+#group-list { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 6px; }
+.inline-form { display: flex; gap: 8px; margin-bottom: 8px; }
+.inline-form input { flex: 1; min-width: 0; }
+.section-gap { margin-top: 16px !important; }
+
+@media (max-width: 800px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 6px 8px; }
+  .side-heading { display: none; }
+  .side-item { flex: none; }
 }

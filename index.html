@@ -16,10 +16,13 @@
     <button id="create" class="btn btn-create">+ Erstellen</button>
   </header>
 
+  <div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Bereiche"></nav>
+  <div class="main">
   <section class="project-header">
     <div class="project-title">
       <span class="project-icon" aria-hidden="true">▦</span>
-      <h1>Aufträge</h1>
+      <h1 id="project-name">Aufträge</h1>
     </div>
     <nav class="tabs" role="tablist">
       <button class="tab" role="tab" data-view="list">Liste</button>
@@ -42,6 +45,8 @@
 
   <main id="board" class="board" aria-live="polite"></main>
   <main id="list" class="list" hidden></main>
+  </div>
+  </div>
 
   <dialog id="task-dialog">
     <form id="task-form" method="dialog">
@@ -53,9 +58,9 @@
       <h2 id="task-dialog-title" class="visually-hidden">Auftrag</h2>
       <input name="title" class="title-input" required maxlength="200" placeholder="Auftragsname" aria-label="Titel">
       <div class="props">
-        <label>Zuständig <input name="assignee" maxlength="80" placeholder="Name"></label>
-        <label>Fällig am <input name="due" type="date"></label>
-        <label>Priorität
+        <label data-builtin="assignee">Zuständig <input name="assignee" maxlength="80" placeholder="Name"></label>
+        <label data-builtin="due">Fälligkeit <input name="due" type="date"></label>
+        <label data-builtin="priority">Priorität
           <select name="priority">
             <option value="niedrig">Niedrig</option>
             <option value="normal" selected>Normal</option>
@@ -63,8 +68,14 @@
           </select>
         </label>
         <label>Bereich <select name="area"></select></label>
+        <label id="group-label">Gruppe <select name="group"></select></label>
       </div>
       <div id="custom-fields" class="props"></div>
+      <div class="subtasks">
+        <span class="label-text">Unteraufgaben</span>
+        <ul id="subtask-list"></ul>
+        <input id="subtask-new" placeholder="+ Unteraufgabe hinzufügen (Enter)" maxlength="200" aria-label="Neue Unteraufgabe">
+      </div>
       <label>Beschreibung
         <textarea name="description" rows="4" placeholder="Worum geht es bei diesem Auftrag?"></textarea>
       </label>
@@ -89,8 +100,22 @@
   </dialog>
 
   <dialog id="fields-dialog">
-    <h2>Eigene Felder</h2>
-    <p class="hint">Diese Felder erscheinen in jedem Auftrag zusätzlich zu Titel, Beschreibung, Zuständig, Fälligkeit und Priorität.</p>
+    <h2>Felder &amp; Gruppen</h2>
+    <h3>Standardfelder</h3>
+    <div class="builtin-toggles">
+      <label class="check"><input type="checkbox" id="bi-assignee"> Zuständig</label>
+      <label class="check"><input type="checkbox" id="bi-due"> Fälligkeit</label>
+      <label class="check"><input type="checkbox" id="bi-priority"> Priorität</label>
+    </div>
+    <h3>Gruppen</h3>
+    <p class="hint">Gruppen unterteilen jeden Bereich, z. B. nach Produktlinie (VC, MC).</p>
+    <ul id="group-list"></ul>
+    <form id="group-form" class="inline-form">
+      <input name="name" maxlength="40" placeholder="Neue Gruppe, z. B. VC" aria-label="Name der neuen Gruppe">
+      <button type="submit" class="btn btn-ghost">Hinzufügen</button>
+    </form>
+    <h3 class="section-gap">Eigene Felder</h3>
+    <p class="hint">Diese Felder erscheinen in jedem Auftrag und als Spalten in der Liste. Bei Zahlenfeldern wird pro Gruppe die Summe gebildet.</p>
     <ul id="field-list"></ul>
     <form id="field-form" class="field-form">
       <h3>Neues Feld</h3>
