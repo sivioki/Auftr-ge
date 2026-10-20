@@ -1,6 +1,7 @@
 # Auftragsboard
 
-Ein einfaches Kanban-Board (ähnlich wie Asana/Trello), mit dem du Aufträge von einem Bereich in den nächsten schiebst.
+Ein Kanban-Board im Stil von Asana, mit dem du Aufträge von einem Bereich in den nächsten schiebst.
+Design und Bedienung sind an Asanas Board- und Listenansicht angelehnt; alle Bilder sind eigene Illustrationen.
 
 ## Starten
 
@@ -17,8 +18,14 @@ Oder lokal ausliefern: `python3 -m http.server` und http://localhost:8000 aufruf
   wahlweise auf der Karte anzeigen
 - **Verschieben** per Drag & Drop, mit den Pfeilen ← → auf der Karte, über das Feld „Bereich“ im Dialog
   oder per Tastatur (Karte fokussieren, `Shift` + `←`/`→`)
+- **Board- und Listenansicht** (Tabs „Board“ / „Liste“)
+- **Karten wie in Asana:** Titelbild, Erledigt-Haken, farbige Pillen für Priorität und Auswahlfelder,
+  Avatar mit Initialen, Fälligkeit als „Heute“, „Morgen“, „Gestern“ oder Datum
+- **Titelbilder** pro Auftrag hochladen (werden automatisch verkleinert)
+- **Erledigt** markieren und erledigte Aufträge ausblenden
+- **Beispiele**: lädt ein Board mit Beispielaufträgen
 - **Verlauf** je Auftrag: wann er in welchen Bereich verschoben wurde
-- Überfällige Aufträge werden rot markiert
+- Überfällige Aufträge werden rot, bald fällige grün markiert
 - **Suche** über Titel, Beschreibung, Zuständige und eigene Felder
 - **Export/Import** als JSON-Datei (Backup oder Übertragen auf ein anderes Gerät)
 - Daten werden automatisch im Browser (localStorage) gespeichert

@@ -8,38 +8,53 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Auftragsboard</h1>
-    <input id="search" type="search" placeholder="Aufträge suchen …" aria-label="Aufträge suchen">
-    <div class="topbar-actions">
-      <button id="add-area" class="btn">+ Bereich</button>
-      <button id="manage-fields" class="btn btn-ghost">Felder</button>
-      <button id="export" class="btn btn-ghost" title="Als JSON-Datei sichern">Export</button>
-      <label class="btn btn-ghost" title="JSON-Datei laden">
-        Import<input id="import" type="file" accept="application/json" hidden>
-      </label>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>Auftragsboard</span>
     </div>
+    <input id="search" type="search" placeholder="Suchen" aria-label="Aufträge suchen">
+    <button id="create" class="btn btn-create">+ Erstellen</button>
   </header>
 
+  <section class="project-header">
+    <div class="project-title">
+      <span class="project-icon" aria-hidden="true">▦</span>
+      <h1>Aufträge</h1>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="list">Liste</button>
+      <button class="tab" role="tab" data-view="board">Board</button>
+    </nav>
+  </section>
+
+  <section class="toolbar">
+    <button id="add-task-top" class="btn btn-primary">+ Auftrag hinzufügen</button>
+    <span class="spacer"></span>
+    <label class="toggle"><input type="checkbox" id="hide-done"> Erledigte ausblenden</label>
+    <button id="add-area" class="btn btn-ghost">+ Bereich</button>
+    <button id="manage-fields" class="btn btn-ghost">Felder</button>
+    <button id="export" class="btn btn-ghost" title="Als JSON-Datei sichern">Export</button>
+    <label class="btn btn-ghost" title="JSON-Datei laden">
+      Import<input id="import" type="file" accept="application/json" hidden>
+    </label>
+    <button id="load-examples" class="btn btn-ghost" title="Board mit Beispielaufträgen füllen">Beispiele</button>
+  </section>
+
   <main id="board" class="board" aria-live="polite"></main>
+  <main id="list" class="list" hidden></main>
 
   <dialog id="task-dialog">
     <form id="task-form" method="dialog">
-      <h2 id="task-dialog-title">Auftrag</h2>
-      <label>Titel
-        <input name="title" required maxlength="200">
-      </label>
-      <label>Beschreibung
-        <textarea name="description" rows="4"></textarea>
-      </label>
-      <div class="row">
-        <label>Zuständig
-          <input name="assignee" maxlength="80">
-        </label>
-        <label>Fällig am
-          <input name="due" type="date">
-        </label>
+      <div class="dialog-head">
+        <button type="button" id="toggle-done" class="btn btn-ghost done-btn">✓ Als erledigt markieren</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancel-task" class="icon-btn" title="Schließen">×</button>
       </div>
-      <div class="row">
+      <h2 id="task-dialog-title" class="visually-hidden">Auftrag</h2>
+      <input name="title" class="title-input" required maxlength="200" placeholder="Auftragsname" aria-label="Titel">
+      <div class="props">
+        <label>Zuständig <input name="assignee" maxlength="80" placeholder="Name"></label>
+        <label>Fällig am <input name="due" type="date"></label>
         <label>Priorität
           <select name="priority">
             <option value="niedrig">Niedrig</option>
@@ -47,11 +62,20 @@
             <option value="hoch">Hoch</option>
           </select>
         </label>
-        <label>Bereich
-          <select name="area"></select>
-        </label>
+        <label>Bereich <select name="area"></select></label>
       </div>
-      <div id="custom-fields"></div>
+      <div id="custom-fields" class="props"></div>
+      <label>Beschreibung
+        <textarea name="description" rows="4" placeholder="Worum geht es bei diesem Auftrag?"></textarea>
+      </label>
+      <div class="cover-edit">
+        <span class="label-text">Titelbild</span>
+        <img id="cover-preview" alt="" hidden>
+        <div class="cover-actions">
+          <label class="btn btn-ghost">Bild wählen<input id="cover-input" type="file" accept="image/*" hidden></label>
+          <button type="button" id="cover-remove" class="btn btn-ghost">Entfernen</button>
+        </div>
+      </div>
       <details id="history-box">
         <summary>Verlauf</summary>
         <ul id="history"></ul>
@@ -59,8 +83,7 @@
       <div class="dialog-actions">
         <button type="button" id="delete-task" class="btn btn-danger">Löschen</button>
         <span class="spacer"></span>
-        <button type="button" id="cancel-task" class="btn btn-ghost">Abbrechen</button>
-        <button type="submit" class="btn">Speichern</button>
+        <button type="submit" class="btn btn-primary">Speichern</button>
       </div>
     </form>
   </dialog>
@@ -91,7 +114,7 @@
         <input name="options" placeholder="z. B. Klein, Mittel, Groß">
       </label>
       <label class="check"><input type="checkbox" name="onCard" checked> Auf der Karte anzeigen</label>
-      <button type="submit" class="btn">Feld hinzufügen</button>
+      <button type="submit" class="btn btn-primary">Feld hinzufügen</button>
     </form>
     <div class="dialog-actions">
       <span class="spacer"></span>
@@ -112,7 +135,7 @@
         </div>
       </header>
       <div class="cards"></div>
-      <button class="add-task">+ Auftrag</button>
+      <button class="add-task">+ Auftrag hinzufügen</button>
     </section>
   </template>
 
@@ -126,11 +149,23 @@
 
   <template id="card-template">
     <article class="card" draggable="true" tabindex="0">
-      <div class="card-title"></div>
-      <div class="card-meta"></div>
-      <div class="card-actions">
-        <button class="icon-btn prev" title="Zurück in vorherigen Bereich">←</button>
-        <button class="icon-btn next" title="Weiter in nächsten Bereich">→</button>
+      <img class="card-cover" alt="" hidden>
+      <div class="card-body">
+        <div class="card-head">
+          <button class="check-btn" title="Als erledigt markieren" aria-label="Erledigt"></button>
+          <div class="card-title"></div>
+        </div>
+        <div class="pills"></div>
+        <div class="card-foot">
+          <span class="avatar" hidden></span>
+          <span class="due"></span>
+          <span class="spacer"></span>
+          <span class="extras"></span>
+          <span class="card-actions">
+            <button class="icon-btn prev" title="Zurück in vorherigen Bereich">←</button>
+            <button class="icon-btn next" title="Weiter in nächsten Bereich">→</button>
+          </span>
+        </div>
       </div>
     </article>
   </template>
