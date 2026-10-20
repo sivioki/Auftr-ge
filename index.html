@@ -12,6 +12,7 @@
     <input id="search" type="search" placeholder="Aufträge suchen …" aria-label="Aufträge suchen">
     <div class="topbar-actions">
       <button id="add-area" class="btn">+ Bereich</button>
+      <button id="manage-fields" class="btn btn-ghost">Felder</button>
       <button id="export" class="btn btn-ghost" title="Als JSON-Datei sichern">Export</button>
       <label class="btn btn-ghost" title="JSON-Datei laden">
         Import<input id="import" type="file" accept="application/json" hidden>
@@ -50,6 +51,7 @@
           <select name="area"></select>
         </label>
       </div>
+      <div id="custom-fields"></div>
       <details id="history-box">
         <summary>Verlauf</summary>
         <ul id="history"></ul>
@@ -63,6 +65,40 @@
     </form>
   </dialog>
 
+  <dialog id="fields-dialog">
+    <h2>Eigene Felder</h2>
+    <p class="hint">Diese Felder erscheinen in jedem Auftrag zusätzlich zu Titel, Beschreibung, Zuständig, Fälligkeit und Priorität.</p>
+    <ul id="field-list"></ul>
+    <form id="field-form" class="field-form">
+      <h3>Neues Feld</h3>
+      <div class="row">
+        <label>Name
+          <input name="name" required maxlength="60" placeholder="z. B. Kunde, Auftragsnummer, Betrag">
+        </label>
+        <label>Typ
+          <select name="type">
+            <option value="text">Text</option>
+            <option value="textarea">Mehrzeiliger Text</option>
+            <option value="number">Zahl</option>
+            <option value="date">Datum</option>
+            <option value="select">Auswahl</option>
+            <option value="checkbox">Ja/Nein</option>
+            <option value="url">Link</option>
+          </select>
+        </label>
+      </div>
+      <label class="options-label" hidden>Auswahlwerte (mit Komma trennen)
+        <input name="options" placeholder="z. B. Klein, Mittel, Groß">
+      </label>
+      <label class="check"><input type="checkbox" name="onCard" checked> Auf der Karte anzeigen</label>
+      <button type="submit" class="btn">Feld hinzufügen</button>
+    </form>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="close-fields" class="btn btn-ghost">Fertig</button>
+    </div>
+  </dialog>
+
   <template id="area-template">
     <section class="area">
       <header class="area-header">
@@ -71,11 +107,20 @@
         <div class="area-menu">
           <button class="icon-btn move-left" title="Bereich nach links">‹</button>
           <button class="icon-btn move-right" title="Bereich nach rechts">›</button>
+          <button class="icon-btn insert-area" title="Neuen Bereich rechts daneben einfügen">+</button>
           <button class="icon-btn delete-area" title="Bereich löschen">×</button>
         </div>
       </header>
       <div class="cards"></div>
       <button class="add-task">+ Auftrag</button>
+    </section>
+  </template>
+
+  <template id="add-area-template">
+    <section class="area add-area-col">
+      <form class="add-area-form">
+        <input name="name" placeholder="+ Bereich hinzufügen" maxlength="80" aria-label="Name des neuen Bereichs">
+      </form>
     </section>
   </template>
 

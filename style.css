@@ -33,6 +33,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -188,3 +189,29 @@ dialog textarea { resize: vertical; }
   .row { flex-direction: column; gap: 0; }
   .topbar-actions { margin-left: 0; }
 }
+
+/* Bereich hinzufügen */
+.add-area-col { background: transparent; border: 2px dashed var(--border); }
+.add-area-col input {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+}
+.add-area-col input:focus { background: var(--surface); outline: 2px solid var(--accent); }
+
+/* Eigene Felder */
+dialog h3 { font-size: 0.95rem; margin: 0 0 8px; }
+.hint { font-size: 0.85rem; color: var(--muted); margin: 0 0 12px; }
+.field-form { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 8px; }
+dialog label.check { flex-direction: row; align-items: center; gap: 6px; color: var(--text); }
+#field-list { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 8px; }
+#field-list:empty::before { content: "Noch keine eigenen Felder."; color: var(--muted); font-size: 0.85rem; }
+.field-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
+.field-item .field-name { flex: 1; min-width: 120px; }
+.field-item .field-type { font-size: 0.8rem; color: var(--muted); }
+.field-item .field-options { flex-basis: 100%; }
+.field-item label.check { margin: 0; font-size: 0.8rem; flex: none; }
+#custom-fields:empty { display: none; }
+.card-meta .cf-value { overflow-wrap: anywhere; }
