@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auftragsboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Auftragsboard</h1>
+    <input id="search" type="search" placeholder="Aufträge suchen …" aria-label="Aufträge suchen">
+    <div class="topbar-actions">
+      <button id="add-area" class="btn">+ Bereich</button>
+      <button id="export" class="btn btn-ghost" title="Als JSON-Datei sichern">Export</button>
+      <label class="btn btn-ghost" title="JSON-Datei laden">
+        Import<input id="import" type="file" accept="application/json" hidden>
+      </label>
+    </div>
+  </header>
+
+  <main id="board" class="board" aria-live="polite"></main>
+
+  <dialog id="task-dialog">
+    <form id="task-form" method="dialog">
+      <h2 id="task-dialog-title">Auftrag</h2>
+      <label>Titel
+        <input name="title" required maxlength="200">
+      </label>
+      <label>Beschreibung
+        <textarea name="description" rows="4"></textarea>
+      </label>
+      <div class="row">
+        <label>Zuständig
+          <input name="assignee" maxlength="80">
+        </label>
+        <label>Fällig am
+          <input name="due" type="date">
+        </label>
+      </div>
+      <div class="row">
+        <label>Priorität
+          <select name="priority">
+            <option value="niedrig">Niedrig</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hoch">Hoch</option>
+          </select>
+        </label>
+        <label>Bereich
+          <select name="area"></select>
+        </label>
+      </div>
+      <details id="history-box">
+        <summary>Verlauf</summary>
+        <ul id="history"></ul>
+      </details>
+      <div class="dialog-actions">
+        <button type="button" id="delete-task" class="btn btn-danger">Löschen</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancel-task" class="btn btn-ghost">Abbrechen</button>
+        <button type="submit" class="btn">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <template id="area-template">
+    <section class="area">
+      <header class="area-header">
+        <h2 class="area-title" title="Doppelklick zum Umbenennen"></h2>
+        <span class="count"></span>
+        <div class="area-menu">
+          <button class="icon-btn move-left" title="Bereich nach links">‹</button>
+          <button class="icon-btn move-right" title="Bereich nach rechts">›</button>
+          <button class="icon-btn delete-area" title="Bereich löschen">×</button>
+        </div>
+      </header>
+      <div class="cards"></div>
+      <button class="add-task">+ Auftrag</button>
+    </section>
+  </template>
+
+  <template id="card-template">
+    <article class="card" draggable="true" tabindex="0">
+      <div class="card-title"></div>
+      <div class="card-meta"></div>
+      <div class="card-actions">
+        <button class="icon-btn prev" title="Zurück in vorherigen Bereich">←</button>
+        <button class="icon-btn next" title="Weiter in nächsten Bereich">→</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
